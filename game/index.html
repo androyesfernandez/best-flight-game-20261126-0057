@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STORMWING COURIER — Dawn Run over the Kestrel Isles</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #141021; font-family: 'Segoe UI', system-ui, sans-serif; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+  .panel { position: fixed; background: rgba(8, 12, 26, 0.68); border: 1px solid rgba(120, 200, 255, 0.35);
+    border-radius: 10px; color: #e8f2ff; padding: 10px 14px; backdrop-filter: blur(2px); z-index: 5; }
+  .panel .label { font-size: 10px; letter-spacing: 2px; color: #7fd8ff; }
+  .panel .big { font-size: 26px; font-weight: 700; color: #ffd27f; line-height: 1.1; }
+  .panel .sub { font-size: 11px; color: #9fb8d8; }
+  #hud-flight { top: 12px; left: 12px; display: flex; gap: 18px; }
+  #hud-flight .cell { min-width: 86px; }
+  #hud-compass { margin-top: 6px; font-size: 12px; color: #bfe6ff; letter-spacing: 1px; }
+  #hud-score-panel { top: 12px; right: 12px; text-align: right; min-width: 260px; }
+  #hud-score-panel .big { color: #ffd27f; }
+  #hud-cash { color: #58e08a; font-size: 18px; font-weight: 700; }
+  #hud-rank { color: #7fd8ff; font-size: 15px; font-weight: 700; }
+  #hud-rank-bar { height: 6px; background: rgba(255,255,255,0.15); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  #hud-rank-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #37e0d4, #ffd27f); }
+  #hud-mission { margin-top: 10px; text-align: left; border-top: 1px solid rgba(120,200,255,0.25); padding-top: 8px; }
+  #hud-mission-name { color: #ffd27f; font-weight: 700; font-size: 14px; }
+  #hud-mission-objective { font-size: 12px; color: #cfe4ff; margin-top: 2px; }
+  #hud-mission-timer { font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px; }
+  #hud-mission-waypoint { font-size: 12px; color: #9fe8ff; }
+  #hud-radar-wrap { left: 12px; bottom: 12px; padding: 6px; }
+  #radar { width: 220px; height: 220px; display: block; }
+  #hud-bars { left: 252px; bottom: 12px; min-width: 230px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin: 5px 0; font-size: 12px; }
+  .bar-row .blabel { width: 74px; color: #9fb8d8; letter-spacing: 1px; font-size: 10px; }
+  .bar { flex: 1; height: 10px; background: rgba(255,255,255,0.14); border-radius: 5px; overflow: hidden; }
+  .bar > div { height: 100%; background: #37e0d4; }
+  #hud-fuel-fill { background: #58e08a; }
+  #hud-aircraft-fill { background: #ffd27f; }
+  .bar-row.low .bar > div { background: #ff5040; }
+  .bar-row.low .bpct { color: #ff7060; font-weight: 700; }
+  .bpct { width: 40px; text-align: right; color: #e8f2ff; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 11px; color: #bfe6ff; border: 1px solid rgba(120,200,255,0.4); border-radius: 20px; padding: 3px 9px; }
+  #hud-bottom-centre { right: 12px; left: auto; bottom: 12px; text-align: center; width: 400px; }
+  #hud-event { color: #ffd27f; font-size: 14px; font-weight: 600; }
+  #hud-hint { color: #9fb8d8; font-size: 11px; margin-top: 3px; }
+  #hud-banner { top: 76px; left: 50%; transform: translateX(-50%); background: rgba(8,12,26,0.8);
+    color: #ffd27f; font-size: 20px; font-weight: 800; letter-spacing: 2px; padding: 10px 26px;
+    border: 1px solid rgba(255,210,127,0.6); border-radius: 10px; opacity: 0; transition: opacity 0.3s; z-index: 6; pointer-events: none; }
+  #hud-banner.show { opacity: 1; }
+  body.on-title .panel, body.on-title #hud-banner { visibility: hidden; }
+  .overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center;
+    background: rgba(10, 8, 28, 0.55); color: #eef4ff; }
+  .overlay.hidden { display: none; }
+  .overlay-card { background: rgba(10, 14, 32, 0.88); border: 1px solid rgba(120,200,255,0.4); border-radius: 14px;
+    padding: 26px 32px; max-width: 780px; width: 92%; max-height: 92vh; overflow-y: auto; }
+  .overlay-card h1 { margin: 0; font-size: 44px; letter-spacing: 4px; color: #ffd27f; }
+  .tagline { color: #9fe8ff; font-size: 15px; margin: 4px 0 16px; }
+  .sortie-btn { display: flex; gap: 12px; align-items: baseline; width: 100%; text-align: left;
+    background: rgba(120,200,255,0.08); border: 1px solid rgba(120,200,255,0.3); color: #eef4ff;
+    border-radius: 8px; padding: 9px 12px; margin: 5px 0; cursor: pointer; font-size: 14px; }
+  .sortie-btn:hover { background: rgba(255,210,127,0.18); border-color: #ffd27f; }
+  .sortie-num { color: #ffd27f; font-weight: 800; width: 18px; }
+  .sortie-name { font-weight: 700; }
+  .sortie-type { color: #9fb8d8; font-size: 12px; flex: 1; }
+  .sortie-best { color: #58e08a; font-size: 12px; }
+  .menu-buttons { display: flex; gap: 10px; margin-top: 16px; }
+  .menu-buttons button, .slot-btn { background: #ffb020; color: #1a1206; border: none; border-radius: 8px;
+    padding: 11px 18px; font-size: 15px; font-weight: 800; cursor: pointer; }
+  .menu-buttons button:hover, .slot-btn:hover { background: #ffd27f; }
+  .slot-btn { background: rgba(120,200,255,0.14); color: #bfe6ff; border: 1px solid rgba(120,200,255,0.4);
+    font-size: 12px; padding: 8px 12px; font-weight: 600; }
+  #save-slots { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .controls-line { color: #9fb8d8; font-size: 12px; margin-top: 14px; line-height: 1.6; }
+  .stat-box { background: rgba(120,200,255,0.08); border: 1px solid rgba(120,200,255,0.3); border-radius: 8px;
+    padding: 12px; text-align: center; }
+  .stat-label { display: block; font-size: 10px; letter-spacing: 2px; color: #7fd8ff; }
+  .stat-value { display: block; font-size: 24px; font-weight: 800; color: #ffd27f; margin-top: 4px; }
+  #debrief-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 16px; }
+  #debrief-title { font-size: 34px; color: #ffd27f; margin: 0; }
+  #debrief-reason { color: #cfe4ff; margin-top: 6px; }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Stormwing Courier: fly the twin-prop Petrel courier across the dawn Kestrel Isles"></canvas>
+<p id="status" role="status" aria-live="polite"></p>
+
+<div id="hud-flight" class="panel">
+  <div class="cell"><div class="label">ALT</div><div class="big" id="hud-alt">0 FT</div><div class="sub">above sea level</div></div>
+  <div class="cell"><div class="label">SPD</div><div class="big" id="hud-spd">0 KT</div><div class="sub">knots</div></div>
+  <div class="cell"><div class="label">HDG</div><div class="big" id="hud-hdg">090° E</div><div class="sub">heading</div></div>
+  <div class="cell"><div class="label">VERT · <span id="hud-vsi-label">LEVEL</span></div><div class="big" id="hud-vsi">+0 FPM</div><div class="sub">vertical speed</div></div>
+  <div id="hud-compass">N · 045 · 090 E · 135 · S</div>
+</div>
+
+<div id="hud-score-panel" class="panel">
+  <div class="label">SCORE</div>
+  <div class="big" id="hud-score">0</div>
+  <div id="hud-cash">$0</div>
+  <div id="hud-rank">Rookie</div>
+  <div id="hud-rank-bar"><div id="hud-rank-fill"></div></div>
+  <div class="sub" id="hud-next-rank">Next: Courier (0%)</div>
+  <div id="hud-mission">
+    <div id="hud-mission-name">FREE FLIGHT</div>
+    <div id="hud-mission-stage">Explore</div>
+    <div id="hud-mission-objective">Pick a sortie on the title screen.</div>
+    <div id="hud-mission-timer">00:00 / 00:00</div>
+    <div id="hud-mission-waypoint">—</div>
+  </div>
+</div>
+
+<div id="hud-radar-wrap" class="panel"><canvas id="radar" width="220" height="220"></canvas></div>
+
+<div id="hud-bars" class="panel">
+  <div class="bar-row"><span class="blabel">THROTTLE</span><div class="bar"><div id="hud-throttle-fill" style="width:0%"></div></div><span class="bpct" id="hud-throttle-pct">0%</span></div>
+  <div class="bar-row" id="hud-fuel-row"><span class="blabel">FUEL</span><div class="bar"><div id="hud-fuel-fill" style="width:100%"></div></div><span class="bpct" id="hud-fuel-pct">100%</span></div>
+  <div class="bar-row" id="hud-aircraft-row"><span class="blabel">AIRCRAFT</span><div class="bar"><div id="hud-aircraft-fill" style="width:100%"></div></div><span class="bpct" id="hud-aircraft-pct">100%</span></div>
+  <div class="chips">
+    <span class="chip" id="hud-chip-flaps">FLAPS UP</span>
+    <span class="chip" id="hud-chip-gear">GEAR DOWN</span>
+    <span class="chip" id="hud-chip-wind">WIND 270° 8 m/s</span>
+    <span class="chip" id="hud-chip-camera">CAM CHASE</span>
+  </div>
+</div>
+
+<div id="hud-bottom-centre" class="panel">
+  <div id="hud-event">Welcome to the Kestrel Isles.</div>
+  <div id="hud-hint">W/S throttle · Arrows pitch &amp; roll · A/D yaw · F flaps · Space brake · B drop crate · C camera · R reset · P pause · M mute · 1–8 sortie · Enter start</div>
+</div>
+
+<div id="hud-banner"></div>
+
+<div id="title-screen" class="overlay">
+  <div class="overlay-card">
+    <h1>STORMWING COURIER</h1>
+    <div class="tagline">Dawn Run over the Kestrel Isles — fly the twin-prop Petrel through a storm front: gates, drops, short strips and photo passes.</div>
+    <div id="sortie-list"></div>
+    <div id="save-slots"></div>
+    <div class="menu-buttons">
+      <button id="btn-fly-1">FLY SORTIE 1</button>
+      <button id="btn-free">FREE FLIGHT</button>
+    </div>
+    <div class="controls-line">W/S throttle · Arrow keys pitch &amp; roll · A/D yaw · hold mouse to steer · F flaps · Space brake on the ground · B drop crate · C chase/cockpit camera · R reset to Kestrel Field · P pause · M mute · 1–8 pick a sortie · Enter start. Land on any strip at low speed to refuel and repair. Empty tank = glider. Watch the storm wind.</div>
+  </div>
+</div>
+
+<div id="pause-screen" class="overlay hidden">
+  <div class="overlay-card">
+    <h1 style="font-size:32px">PAUSED</h1>
+    <div class="tagline">The Petrel holds its course while you catch your breath.</div>
+    <div class="menu-buttons">
+      <button id="btn-resume">RESUME</button>
+      <button id="btn-quit">QUIT TO TITLE</button>
+    </div>
+  </div>
+</div>
+
+<div id="debrief-screen" class="overlay hidden">
+  <div class="overlay-card">
+    <h2 id="debrief-title">SORTIE COMPLETE</h2>
+    <div id="debrief-reason"></div>
+    <div id="debrief-stats"></div>
+    <div class="menu-buttons">
+      <button id="btn-again">FLY AGAIN</button>
+      <button id="btn-to-title">TITLE SCREEN</button>
+    </div>
+  </div>
+</div>
+
+<script src="./vendor/three.min.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
